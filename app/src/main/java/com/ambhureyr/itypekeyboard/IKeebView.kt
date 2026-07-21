@@ -2,30 +2,27 @@ package com.ambhureyr.itypekeyboard
 
 import android.content.Context
 import android.graphics.Canvas
-import android.inputmethodservice.Keyboard
+import android.graphics.Paint
+import android.graphics.RectF
 import android.inputmethodservice.KeyboardView
 import android.util.AttributeSet
-
-import android.graphics.Color
-import android.graphics.Paint
+import com.ambhureyr.itypekeyboard.render.KeyRenderer
+import com.ambhureyr.itypekeyboard.theme.Colors
 
 class IKeebView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : KeyboardView(context, attrs) {
 
-    private val testPaint = Paint().apply{
-        color = Color.parseColor("#007AFF")
-        isAntiAlias= true
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Colors.KeyBackground
     }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        canvas.drawCircle(
-            100f,
-            100f,
-            25f,
-            testPaint
-        )
+        keyboard?.keys?.forEach { key ->
+            KeyRenderer.drawKey(canvas, key)
+        }
     }
 }
