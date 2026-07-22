@@ -21,7 +21,7 @@
 
     <!-- Row 2: a s d f g h j k l -->
     <Row>
-        <Key android:codes="97" android:keyLabel="a" android:horizontalGap="5%p"/>
+        <Key android:codes="97" android:keyLabel="a" android:horizontalGap="2%p"/>
         <Key android:codes="115" android:keyLabel="s"/>
         <Key android:codes="100" android:keyLabel="d"/>
         <Key android:codes="102" android:keyLabel="f"/>
