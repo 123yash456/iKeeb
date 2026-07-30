@@ -1,19 +1,23 @@
 package com.ambhureyr.itypekeyboard.engine.model
 
-import android.content.Context
 import android.graphics.RectF
-import com.ambhureyr.itypekeyboard.R
 
 class KeyboardLayout {
 
     val rows: List<List<KeyModel>> = listOf(
-        // Row 1: q w e r t y u i o p
+        // Row 0: 1 2 3 4 5 6 7 8 9 0 (10 keys)
+        listOf(
+            KeyModel(49, "1"), KeyModel(50, "2"), KeyModel(51, "3"), KeyModel(52, "4"),
+            KeyModel(53, "5"), KeyModel(54, "6"), KeyModel(55, "7"), KeyModel(56, "8"),
+            KeyModel(57, "9"), KeyModel(48, "0")
+        ),
+        // Row 1: q w e r t y u i o p (10 keys)
         listOf(
             KeyModel(113, "q"), KeyModel(119, "w"), KeyModel(101, "e"), KeyModel(114, "r"),
             KeyModel(116, "t"), KeyModel(121, "y"), KeyModel(117, "u"), KeyModel(105, "i"),
             KeyModel(111, "o"), KeyModel(112, "p")
         ),
-        // Row 2: a s d f g h j k l
+        // Row 2: a s d f g h j k l (9 keys - matched width with 10-key rows and balanced side margins)
         listOf(
             KeyModel(97, "a"), KeyModel(115, "s"), KeyModel(100, "d"), KeyModel(102, "f"),
             KeyModel(103, "g"), KeyModel(104, "h"), KeyModel(106, "j"), KeyModel(107, "k"),
@@ -33,31 +37,59 @@ class KeyboardLayout {
         )
     )
 
-    fun measure(width: Float, height: Float, horizontalPadding: Float = 8f, verticalPadding: Float = 8f) {
+    fun measure(width: Float, height: Float, horizontalPadding: Float = 6f, verticalPadding: Float = 5f) {
         if (width <= 0 || height <= 0) return
 
         val rowCount = rows.size
+        // Slightly reduce row height by adding a little top/bottom breathing room or vertical padding
         val availableHeight = height - (verticalPadding * (rowCount + 1))
-        val rowHeight = availableHeight / rowCount
+        val rowHeight = (availableHeight / rowCount) * 0.95f // Reduce key height by a little
 
-        var currentY = verticalPadding
+        var currentY = verticalPadding + ((availableHeight - (rowHeight * rowCount)) / 2f)
 
-        rows.forEach { row ->
-            val totalFlexWidth = row.sumOf { it.flexWidth.toDouble() }.toFloat()
-            val availableWidth = width - (horizontalPadding * (row.size + 1))
-            val unitWidth = availableWidth / totalFlexWidth
+        // Standard unit width calculated based on 10 keys (Row 0 & Row 1)
+        val standard10KeyTotalFlex = 10f
+        val availableWidth = width - (horizontalPadding * 11)
+        val standardUnitWidth = availableWidth / standard10KeyTotalFlex
 
-            var currentX = horizontalPadding
+        rows.forEachIndexed { index, row ->
+            if (index == 2) {
+                // Row 2 (a-l, 9 keys): match key width to standard 10-key width, and center with side spacing
+                val rowKeysCount = row.size
+                val totalRowKeysWidth = rowKeysCount * standardUnitWidth
+                val totalGapsWidth = (rowKeysCount - 1) * horizontalPadding
+                val rowTotalWidth = totalRowKeysWidth + totalGapsWidth
+                
+                // Left and right symmetric padding to center the 9 keys
+                val sideMargin = (width - rowTotalWidth) / 2f
+                var currentX = sideMargin
 
-            row.forEach { key ->
-                val keyWidth = unitWidth * key.flexWidth
-                key.bounds = RectF(
-                    currentX,
-                    currentY,
-                    currentX + keyWidth,
-                    currentY + rowHeight
-                )
-                currentX += keyWidth + horizontalPadding
+                row.forEach { key ->
+                    key.bounds = RectF(
+                        currentX,
+                        currentY,
+                        currentX + standardUnitWidth,
+                        currentY + rowHeight
+                    )
+                    currentX += standardUnitWidth + horizontalPadding
+                }
+            } else {
+                val totalFlexWidth = row.sumOf { it.flexWidth.toDouble() }.toFloat()
+                val rowAvailableWidth = width - (horizontalPadding * (row.size + 1))
+                val unitWidth = rowAvailableWidth / totalFlexWidth
+
+                var currentX = horizontalPadding
+
+                row.forEach { key ->
+                    val keyWidth = unitWidth * key.flexWidth
+                    key.bounds = RectF(
+                        currentX,
+                        currentY,
+                        currentX + keyWidth,
+                        currentY + rowHeight
+                    )
+                    currentX += keyWidth + horizontalPadding
+                }
             }
 
             currentY += rowHeight + verticalPadding

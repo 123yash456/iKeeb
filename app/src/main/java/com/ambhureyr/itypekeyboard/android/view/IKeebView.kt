@@ -33,11 +33,10 @@ class IKeebView @JvmOverloads constructor(
     private var pressedKey: KeyModel? = null
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val width = MeasureSpec.getSize(widthMeasureSpec)
-        // Standard keyboard height: 260dp converted to pixels
-        val targetHeightDp = 260f
+        // Increase keyboard height to 320dp to accommodate 5 rows (Numbers + QWERTY)
+        val targetHeightDp = 320f
         val targetHeightPx = (targetHeightDp * resources.displayMetrics.density).toInt()
-        
+
         val heightSpec = MeasureSpec.makeMeasureSpec(targetHeightPx, MeasureSpec.EXACTLY)
         super.onMeasure(widthMeasureSpec, heightSpec)
     }
