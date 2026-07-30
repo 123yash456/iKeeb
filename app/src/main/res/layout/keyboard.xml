@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.ambhureyr.itypekeyboard.IKeebView
+<com.ambhureyr.itypekeyboard.android.view.IKeebView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/keyboard_view"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#F2F2F7"
-    android:previewLayout="@layout/key_preview"
-    android:popupBackground="@android:color/transparent"
-    android:scrollX="0dp"
-    android:scrollY="0dp"/>
+    android:layout_height="250dp"
+    android:background="#D1D5DB"/>

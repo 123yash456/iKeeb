@@ -8,7 +8,7 @@
         android:theme="@style/Theme.iTypeKeyboard">
 
         <activity
-            android:name=".SettingsActivity"
+            android:name=".android.settings.SettingsActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -17,7 +17,7 @@
         </activity>
 
         <service
-            android:name=".KeyboardService"
+            android:name=".android.ime.KeyboardService"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
 
