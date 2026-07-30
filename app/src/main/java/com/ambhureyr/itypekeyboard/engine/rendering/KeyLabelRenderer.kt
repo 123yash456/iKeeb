@@ -15,25 +15,38 @@ class KeyLabelRenderer : Renderer {
         typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
     }
 
+    private val activeShiftPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Colors.KeyText
+        textAlign = Paint.Align.CENTER
+        textSize = Dimensions.KeyTextSize * 1.2f // Larger arrow size
+        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+    }
+
     override fun render(context: RenderContext) {
         context.layout.rows.forEach { row ->
             row.forEach { key ->
                 var displayText = key.label
+                var paintToUse = labelPaint
 
-                if (key.primaryCode == KeyboardLayout.KEYCODE_SHIFT && context.isShifted) {
-                    displayText = "SHIFT"
+                if (key.primaryCode == KeyboardLayout.KEYCODE_SHIFT) {
+                    paintToUse = activeShiftPaint
+                    if (context.isShifted) {
+                        displayText = "⬆" // Darker upper arrow / bold arrow when active
+                    } else {
+                        displayText = "⇧"
+                    }
                 } else if (context.isShifted && displayText.length == 1 && displayText[0].isLetter()) {
                     displayText = displayText.uppercase()
                 }
 
                 val x = key.bounds.centerX()
-                val y = key.bounds.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f
+                val y = key.bounds.centerY() - (paintToUse.descent() + paintToUse.ascent()) / 2f
 
                 context.canvas.drawText(
                     displayText,
                     x,
                     y,
-                    labelPaint
+                    paintToUse
                 )
             }
         }
