@@ -105,13 +105,13 @@ class IKeebView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 pressedKey = keyboardLayout.findKeyAt(x, y)
                 isLongPressTriggered = false
-                
+
                 pressedKey?.let { key ->
                     if (key.isRepeatable) {
                         handler.postDelayed(longPressRunnable, 350L)
                     }
                 }
-                
+
                 invalidate()
                 return true
             }
