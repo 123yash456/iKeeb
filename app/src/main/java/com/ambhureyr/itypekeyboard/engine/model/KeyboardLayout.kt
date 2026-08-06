@@ -100,6 +100,7 @@ class KeyboardLayout {
                 KeyModel(-3, "ABC", KeyType.FUNCTION, flexWidth = 1.6f),
                 KeyModel(KEYCODE_EMOJI_NEXT_PAGE, "\u203a", KeyType.FUNCTION, flexWidth = 1.4f),
                 KeyModel(32, "space", KeyType.SPACE, flexWidth = 4.5f),
+                KeyModel(-5, "⌫", KeyType.FUNCTION, flexWidth = 1.4f, isRepeatable = true),
                 KeyModel(10, "return", KeyType.FUNCTION, flexWidth = 2.5f)
             )
         )

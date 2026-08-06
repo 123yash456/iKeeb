@@ -108,8 +108,15 @@ class KeyboardService : InputMethodService(), IKeebView.OnKeyActionListener {
             }
             KeyboardLayout.KEYCODE_EMOJI_NEXT_PAGE -> {
                 soundManager.playKeyClick()
-                // Same row/key shape across pages, so no re-measure needed.
+
                 keebView.keyboardLayout.nextEmojiPage()
+
+                keebView.keyboardLayout.measure(
+                    keebView.width.toFloat(),
+                    keebView.height.toFloat(),
+                    context = keebView.context
+                )
+
                 keebView.refreshSpatialMap()
                 keebView.invalidate()
             }
