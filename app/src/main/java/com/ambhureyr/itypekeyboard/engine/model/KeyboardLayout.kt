@@ -1,10 +1,22 @@
 package com.ambhureyr.itypekeyboard.engine.model
 
+import android.content.Context
+import android.graphics.PointF
 import android.graphics.RectF
 
 class KeyboardLayout {
 
     var isSymbolMode: Boolean = false
+    var isEmojiMode: Boolean = false
+        private set
+
+    // Which mode to snap back to when the emoji panel's "ABC" key is tapped --
+    // qwerty if the panel was opened from letters, symbols if opened from 123.
+    private var emojiReturnsToSymbolMode: Boolean = false
+
+    var emojiPage: Int = 0
+        private set
+    val emojiPageCount: Int get() = emojiPages.size
 
     private val qwertyRows: List<List<KeyModel>> = listOf(
         // Row 0: 1 2 3 4 5 6 7 8 9 0
@@ -32,10 +44,11 @@ class KeyboardLayout {
             KeyModel(98, "b"), KeyModel(110, "n"), KeyModel(109, "m"),
             KeyModel(-5, "⌫", KeyType.FUNCTION, flexWidth = 1.4f, isRepeatable = true)
         ),
-        // Row 4: 123 switch, Space & Enter
+        // Row 4: 123 switch, Emoji, Space & Enter (iOS style layout)
         listOf(
-            KeyModel(-2, "123", KeyType.FUNCTION, flexWidth = 2.0f),
-            KeyModel(32, "space", KeyType.SPACE, flexWidth = 5.5f),
+            KeyModel(-2, "123", KeyType.FUNCTION, flexWidth = 1.6f),
+            KeyModel(-4, ":)", KeyType.FUNCTION, flexWidth = 1.4f),
+            KeyModel(32, "space", KeyType.SPACE, flexWidth = 4.5f),
             KeyModel(10, "return", KeyType.FUNCTION, flexWidth = 2.5f)
         )
     )
@@ -66,37 +79,86 @@ class KeyboardLayout {
             KeyModel(165, "¥"), KeyModel(8226, "•"), KeyModel(44, ","), KeyModel(46, "."),
             KeyModel(-5, "⌫", KeyType.FUNCTION, flexWidth = 1.5f, isRepeatable = true)
         ),
-        // Row 4: ABC switch, Space & Enter
+        // Row 4: ABC switch, Emoji, Space & Enter
         listOf(
-            KeyModel(-2, "ABC", KeyType.FUNCTION, flexWidth = 2.0f),
-            KeyModel(32, "space", KeyType.SPACE, flexWidth = 5.5f),
+            KeyModel(-2, "ABC", KeyType.FUNCTION, flexWidth = 1.6f),
+            KeyModel(-4, ":)", KeyType.FUNCTION, flexWidth = 1.4f),
+            KeyModel(32, "space", KeyType.SPACE, flexWidth = 4.5f),
             KeyModel(10, "return", KeyType.FUNCTION, flexWidth = 2.5f)
         )
     )
 
-    val rows: List<List<KeyModel>>
-        get() = if (isSymbolMode) symbolRows else qwertyRows
+    // Text-emoji (kaomoji) panel: each page is 3 rows of 9 keys + the shared
+    // bottom control row (ABC / next page / space / return). Built once from
+    // TextEmojiData so the curated strings live in one place.
+    private val emojiPages: List<List<List<KeyModel>>> = TextEmojiData.pages.map { entries ->
+        val contentRows = entries.chunked(9).map { rowEntries ->
+            rowEntries.map { text -> KeyModel(KEYCODE_TEXT_EMOJI, text, KeyType.NORMAL, insertText = text) }
+        }
+        contentRows + listOf(
+            listOf(
+                KeyModel(-3, "ABC", KeyType.FUNCTION, flexWidth = 1.6f),
+                KeyModel(KEYCODE_EMOJI_NEXT_PAGE, "\u203a", KeyType.FUNCTION, flexWidth = 1.4f),
+                KeyModel(32, "space", KeyType.SPACE, flexWidth = 4.5f),
+                KeyModel(10, "return", KeyType.FUNCTION, flexWidth = 2.5f)
+            )
+        )
+    }
 
-    fun measure(width: Float, height: Float, horizontalPadding: Float = 6f, verticalPadding: Float = 5f) {
+    val rows: List<List<KeyModel>>
+        get() = when {
+            isEmojiMode -> emojiPages[emojiPage]
+            isSymbolMode -> symbolRows
+            else -> qwertyRows
+        }
+
+    fun openEmojiPanel() {
+        emojiReturnsToSymbolMode = isSymbolMode
+        isEmojiMode = true
+        emojiPage = 0
+    }
+
+    fun closeEmojiPanel() {
+        isEmojiMode = false
+        isSymbolMode = emojiReturnsToSymbolMode
+    }
+
+    fun nextEmojiPage() {
+        if (emojiPages.isEmpty()) return
+        emojiPage = (emojiPage + 1) % emojiPages.size
+    }
+
+    fun measure(width: Float, height: Float, horizontalPadding: Float = 6f, verticalPadding: Float = 5f, context: Context? = null) {
         if (width <= 0 || height <= 0) return
+
+        // Read keyboard key size scale factor from preferences (80% to 130%)
+        val scaleFactor = if (context != null) {
+            val prefs = context.getSharedPreferences("ikeeb_settings", Context.MODE_PRIVATE)
+            prefs.getInt("keyboard_scale", 100) / 100f
+        } else {
+            1.0f
+        }
 
         val activeRows = rows
         val rowCount = activeRows.size
         val availableHeight = height - (verticalPadding * (rowCount + 1))
-        val rowHeight = (availableHeight / rowCount) * 0.90f
+        val baseRowHeight = (availableHeight / rowCount) * 0.90f
 
-        var currentY = verticalPadding + ((availableHeight - (rowHeight * rowCount)) / 2f)
+        var currentY = verticalPadding + ((availableHeight - (baseRowHeight * rowCount)) / 2f)
 
         // Standard unit width calculated based on 10 keys (Row 0 & Row 1)
         val standard10KeyTotalFlex = 10f
         val availableWidth = width - (horizontalPadding * 11)
-        val standardUnitWidth = availableWidth / standard10KeyTotalFlex
+        val baseStandardUnitWidth = availableWidth / standard10KeyTotalFlex
+
+        // The qwerty home-row centering treatment only applies to the qwerty
+        // layout itself -- symbol and emoji pages use plain flex-based rows.
+        val useHomeRowCentering = !isSymbolMode && !isEmojiMode
 
         activeRows.forEachIndexed { index, row ->
-            // In QWERTY mode, row 2 has 9 keys. In symbol mode, row 2 has 10 keys.
-            if (!isSymbolMode && index == 2) {
+            if (useHomeRowCentering && index == 2) {
                 val rowKeysCount = row.size
-                val totalRowKeysWidth = rowKeysCount * standardUnitWidth
+                val totalRowKeysWidth = rowKeysCount * baseStandardUnitWidth
                 val totalGapsWidth = (rowKeysCount - 1) * horizontalPadding
                 val rowTotalWidth = totalRowKeysWidth + totalGapsWidth
                 
@@ -104,35 +166,50 @@ class KeyboardLayout {
                 var currentX = sideMargin
 
                 row.forEach { key ->
-                    key.bounds = RectF(
+                    val cellRect = RectF(
                         currentX,
                         currentY,
-                        currentX + standardUnitWidth,
-                        currentY + rowHeight
+                        currentX + baseStandardUnitWidth,
+                        currentY + baseRowHeight
                     )
-                    currentX += standardUnitWidth + horizontalPadding
+                    key.bounds = scaleRect(cellRect, scaleFactor)
+                    currentX += baseStandardUnitWidth + horizontalPadding
                 }
             } else {
                 val totalFlexWidth = row.sumOf { it.flexWidth.toDouble() }.toFloat()
                 val rowAvailableWidth = width - (horizontalPadding * (row.size + 1))
-                val unitWidth = rowAvailableWidth / totalFlexWidth
+                val baseUnitWidth = rowAvailableWidth / totalFlexWidth
 
                 var currentX = horizontalPadding
 
                 row.forEach { key ->
-                    val keyWidth = unitWidth * key.flexWidth
-                    key.bounds = RectF(
+                    val cellWidth = baseUnitWidth * key.flexWidth
+                    val cellRect = RectF(
                         currentX,
                         currentY,
-                        currentX + keyWidth,
-                        currentY + rowHeight
+                        currentX + cellWidth,
+                        currentY + baseRowHeight
                     )
-                    currentX += keyWidth + horizontalPadding
+                    key.bounds = scaleRect(cellRect, scaleFactor)
+                    currentX += cellWidth + horizontalPadding
                 }
             }
 
-            currentY += rowHeight + verticalPadding
+            currentY += baseRowHeight + verticalPadding
         }
+    }
+
+    private fun scaleRect(rect: RectF, scale: Float): RectF {
+        val cx = rect.centerX()
+        val cy = rect.centerY()
+        val newWidth = rect.width() * scale
+        val newHeight = rect.height() * scale
+        return RectF(
+            cx - newWidth / 2f,
+            cy - newHeight / 2f,
+            cx + newWidth / 2f,
+            cy + newHeight / 2f
+        )
     }
 
     fun findKeyAt(x: Float, y: Float): KeyModel? {
@@ -146,6 +223,18 @@ class KeyboardLayout {
         return null
     }
 
+    fun keyCenter(char: Char): PointF? {
+        val target = char.lowercaseChar().toString()
+        qwertyRows.forEach { row ->
+            row.forEach { key ->
+                if (key.label == target && key.bounds.width() > 0f) {
+                    return PointF(key.bounds.centerX(), key.bounds.centerY())
+                }
+            }
+        }
+        return null
+    }
+
     companion object {
         const val KEYCODE_SHIFT = -1
         const val KEYCODE_DELETE = -5
@@ -153,5 +242,8 @@ class KeyboardLayout {
         const val KEYCODE_ENTER = 10
         const val KEYCODE_MODE_SYMBOL = -2
         const val KEYCODE_MODE_ABC = -3
+        const val KEYCODE_EMOJI = -4
+        const val KEYCODE_TEXT_EMOJI = -6
+        const val KEYCODE_EMOJI_NEXT_PAGE = -7
     }
 }

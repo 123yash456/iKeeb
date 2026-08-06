@@ -1,10 +1,12 @@
 package com.ambhureyr.itypekeyboard.engine.rendering
 
 class RenderEngine(
-    private val renderers: List<Renderer> = listOf(
+    val renderers: List<Renderer> = listOf(
         BackgroundRenderer(),
         KeyBodyRenderer(),
-        KeyLabelRenderer()
+        KeyLabelRenderer(),
+        KeyPopupRenderer(),
+        GestureTrailRenderer()
     )
 ) {
 
